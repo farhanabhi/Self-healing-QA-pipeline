@@ -1,0 +1,59 @@
+services:
+  mock-server:
+    build:
+      context: .
+      dockerfile: mock_server/Dockerfile
+    container_name: qa_mock_server
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - qa_net
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qa_test_runner
+    depends_on:
+      mock-server:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      MOCK_SERVER_URL: http://mock-server:8000
+      HEADLESS: "true"
+      ENVIRONMENT: docker
+    volumes:
+      - ./allure-results:/app/allure-results
+    networks:
+      - qa_net
+
+  allure-report:
+    # Correct Docker Hub repo is "frankescobar" (note the second "o") —
+    # https://hub.docker.com/r/frankescobar/allure-docker-service
+    image: frankescobar/allure-docker-service:2.38.1
+    container_name: qa_allure_report
+    depends_on:
+      - test-runner
+    environment:
+      CHECK_RESULTS_EVERY_SECONDS: 3
+      KEEP_HISTORY: 1
+    ports:
+      - "5050:5050"
+    volumes:
+      # Single-project mode needs BOTH volumes: allure-results for raw
+      # results, and a separate directory for stored report history.
+      - ./allure-results:/app/allure-results
+      - ./allure-reports:/app/default-reports
+    networks:
+      - qa_net
+
+networks:
+  qa_net:
+    driver: bridge
