@@ -1,0 +1,1 @@
+[{"values":["docker"],"name":"environment"},{"values":["http://mock-server:8000"],"name":"mock_server_url"},{"values":["True"],"name":"self_healing_enabled"},{"values":["True"],"name":"self_healing_available"},{"values":["llama-3.1-8b-instant"],"name":"groq_model"},{"values":["True"],"name":"headless"}]
